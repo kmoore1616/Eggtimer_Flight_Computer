@@ -90,8 +90,6 @@ int8_t read_pin(char port, int x, char floating){
                 return -1;
         }
     }
-
-
     return -1;
 }
 

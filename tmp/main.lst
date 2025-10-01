@@ -1,0 +1,618 @@
+                                      1 ;--------------------------------------------------------
+                                      2 ; File Created by SDCC : free open source ISO C Compiler
+                                      3 ; Version 4.5.0 #15242 (Linux)
+                                      4 ;--------------------------------------------------------
+                                      5 	.module main
+                                      6 	
+                                      7 ;--------------------------------------------------------
+                                      8 ; Public variables in this module
+                                      9 ;--------------------------------------------------------
+                                     10 	.globl _main
+                                     11 	.globl _get_timing
+                                     12 	.globl _read_pin
+                                     13 	.globl _tog_pin
+                                     14 	.globl _delay_ms
+                                     15 ;--------------------------------------------------------
+                                     16 ; ram data
+                                     17 ;--------------------------------------------------------
+                                     18 	.area DATA
+                                     19 ;--------------------------------------------------------
+                                     20 ; ram data
+                                     21 ;--------------------------------------------------------
+                                     22 	.area INITIALIZED
+                                     23 ;--------------------------------------------------------
+                                     24 ; Stack segment in internal ram
+                                     25 ;--------------------------------------------------------
+                                     26 	.area SSEG
+      000000                         27 __start__stack:
+      000000                         28 	.ds	1
+                                     29 
+                                     30 ;--------------------------------------------------------
+                                     31 ; absolute external ram data
+                                     32 ;--------------------------------------------------------
+                                     33 	.area DABS (ABS)
+                                     34 
+                                     35 ; default segment ordering for linker
+                                     36 	.area HOME
+                                     37 	.area GSINIT
+                                     38 	.area GSFINAL
+                                     39 	.area CONST
+                                     40 	.area INITIALIZER
+                                     41 	.area CODE
+                                     42 
+                                     43 ;--------------------------------------------------------
+                                     44 ; interrupt vector
+                                     45 ;--------------------------------------------------------
+                                     46 	.area HOME
+      000000                         47 __interrupt_vect:
+      000000 82v00u00u00             48 	int s_GSINIT ; reset
+                                     49 ;--------------------------------------------------------
+                                     50 ; global & static initialisations
+                                     51 ;--------------------------------------------------------
+                                     52 	.area HOME
+                                     53 	.area GSINIT
+                                     54 	.area GSFINAL
+                                     55 	.area GSINIT
+      000000 CDr00r00         [ 4]   56 	call	___sdcc_external_startup
+      000003 4D               [ 1]   57 	tnz	a
+      000004 27 03            [ 1]   58 	jreq	__sdcc_init_data
+      000006 CCr00r04         [ 2]   59 	jp	__sdcc_program_startup
+      000009                         60 __sdcc_init_data:
+                                     61 ; stm8_genXINIT() start
+      000009 AEr00r00         [ 2]   62 	ldw x, #l_DATA
+      00000C 27 07            [ 1]   63 	jreq	00002$
+      00000E                         64 00001$:
+      00000E 72 4FuFFuFF      [ 1]   65 	clr (s_DATA - 1, x)
+      000012 5A               [ 2]   66 	decw x
+      000013 26 F9            [ 1]   67 	jrne	00001$
+      000015                         68 00002$:
+      000015 AEr00r00         [ 2]   69 	ldw	x, #l_INITIALIZER
+      000018 27 09            [ 1]   70 	jreq	00004$
+      00001A                         71 00003$:
+      00001A D6uFFuFF         [ 1]   72 	ld	a, (s_INITIALIZER - 1, x)
+      00001D D7uFFuFF         [ 1]   73 	ld	(s_INITIALIZED - 1, x), a
+      000020 5A               [ 2]   74 	decw	x
+      000021 26 F7            [ 1]   75 	jrne	00003$
+      000023                         76 00004$:
+                                     77 ; stm8_genXINIT() end
+                                     78 	.area GSFINAL
+      000000 CCr00r04         [ 2]   79 	jp	__sdcc_program_startup
+                                     80 ;--------------------------------------------------------
+                                     81 ; Home
+                                     82 ;--------------------------------------------------------
+                                     83 	.area HOME
+                                     84 	.area HOME
+      000004                         85 __sdcc_program_startup:
+      000004 CCr02rA4         [ 2]   86 	jp	_main
+                                     87 ;	return from main will return to caller
+                                     88 ;--------------------------------------------------------
+                                     89 ; code
+                                     90 ;--------------------------------------------------------
+                                     91 	.area CODE
+                                     92 ;	main.c: 4: int8_t tog_pin(char port, char x){
+                                     93 ;	-----------------------------------------
+                                     94 ;	 function tog_pin
+                                     95 ;	-----------------------------------------
+      000000                         96 _tog_pin:
+      000000 88               [ 1]   97 	push	a
+                                     98 ;	main.c: 9: PA_CR2 &= ~x;         // disable fast mode
+      000001 88               [ 1]   99 	push	a
+      000002 7B 05            [ 1]  100 	ld	a, (0x05, sp)
+      000004 43               [ 1]  101 	cpl	a
+      000005 6B 02            [ 1]  102 	ld	(0x02, sp), a
+      000007 84               [ 1]  103 	pop	a
+                                    104 ;	main.c: 5: switch(port){
+      000008 A1 41            [ 1]  105 	cp	a, #0x41
+      00000A 27 0F            [ 1]  106 	jreq	00101$
+      00000C A1 42            [ 1]  107 	cp	a, #0x42
+      00000E 27 2D            [ 1]  108 	jreq	00102$
+      000010 A1 43            [ 1]  109 	cp	a, #0x43
+      000012 27 4B            [ 1]  110 	jreq	00103$
+      000014 A1 44            [ 1]  111 	cp	a, #0x44
+      000016 27 69            [ 1]  112 	jreq	00104$
+      000018 CCr00rA3         [ 2]  113 	jp	00105$
+                                    114 ;	main.c: 6: case 'A':
+      00001B                        115 00101$:
+                                    116 ;	main.c: 7: PA_DDR |= x;          // output
+      00001B C6 50 02         [ 1]  117 	ld	a, 0x5002
+      00001E 1A 04            [ 1]  118 	or	a, (0x04, sp)
+      000020 C7 50 02         [ 1]  119 	ld	0x5002, a
+                                    120 ;	main.c: 8: PA_CR1 |= x;          // push-pull
+      000023 C6 50 03         [ 1]  121 	ld	a, 0x5003
+      000026 1A 04            [ 1]  122 	or	a, (0x04, sp)
+      000028 C7 50 03         [ 1]  123 	ld	0x5003, a
+                                    124 ;	main.c: 9: PA_CR2 &= ~x;         // disable fast mode
+      00002B C6 50 04         [ 1]  125 	ld	a, 0x5004
+      00002E 14 01            [ 1]  126 	and	a, (0x01, sp)
+      000030 C7 50 04         [ 1]  127 	ld	0x5004, a
+                                    128 ;	main.c: 10: PA_ODR ^= x;
+      000033 C6 50 00         [ 1]  129 	ld	a, 0x5000
+      000036 18 04            [ 1]  130 	xor	a, (0x04, sp)
+      000038 C7 50 00         [ 1]  131 	ld	0x5000, a
+                                    132 ;	main.c: 11: break;
+      00003B 20 69            [ 2]  133 	jra	00106$
+                                    134 ;	main.c: 12: case 'B':
+      00003D                        135 00102$:
+                                    136 ;	main.c: 13: PB_DDR |= x;          // output
+      00003D C6 50 07         [ 1]  137 	ld	a, 0x5007
+      000040 1A 04            [ 1]  138 	or	a, (0x04, sp)
+      000042 C7 50 07         [ 1]  139 	ld	0x5007, a
+                                    140 ;	main.c: 14: PB_CR1 |= x;          // push-pull
+      000045 C6 50 08         [ 1]  141 	ld	a, 0x5008
+      000048 1A 04            [ 1]  142 	or	a, (0x04, sp)
+      00004A C7 50 08         [ 1]  143 	ld	0x5008, a
+                                    144 ;	main.c: 15: PB_CR2 &= ~x;         // disable fast mode
+      00004D C6 50 09         [ 1]  145 	ld	a, 0x5009
+      000050 14 01            [ 1]  146 	and	a, (0x01, sp)
+      000052 C7 50 09         [ 1]  147 	ld	0x5009, a
+                                    148 ;	main.c: 16: PB_ODR ^= x;
+      000055 C6 50 05         [ 1]  149 	ld	a, 0x5005
+      000058 18 04            [ 1]  150 	xor	a, (0x04, sp)
+      00005A C7 50 05         [ 1]  151 	ld	0x5005, a
+                                    152 ;	main.c: 17: break;
+      00005D 20 47            [ 2]  153 	jra	00106$
+                                    154 ;	main.c: 19: case 'C':
+      00005F                        155 00103$:
+                                    156 ;	main.c: 20: PC_DDR |= x;          // output
+      00005F C6 50 0C         [ 1]  157 	ld	a, 0x500c
+      000062 1A 04            [ 1]  158 	or	a, (0x04, sp)
+      000064 C7 50 0C         [ 1]  159 	ld	0x500c, a
+                                    160 ;	main.c: 21: PC_CR1 |= x;          // push-pull
+      000067 C6 50 0D         [ 1]  161 	ld	a, 0x500d
+      00006A 1A 04            [ 1]  162 	or	a, (0x04, sp)
+      00006C C7 50 0D         [ 1]  163 	ld	0x500d, a
+                                    164 ;	main.c: 22: PC_CR2 &= ~x;         // disable fast mode
+      00006F C6 50 0E         [ 1]  165 	ld	a, 0x500e
+      000072 14 01            [ 1]  166 	and	a, (0x01, sp)
+      000074 C7 50 0E         [ 1]  167 	ld	0x500e, a
+                                    168 ;	main.c: 23: PC_ODR ^= x;
+      000077 C6 50 0A         [ 1]  169 	ld	a, 0x500a
+      00007A 18 04            [ 1]  170 	xor	a, (0x04, sp)
+      00007C C7 50 0A         [ 1]  171 	ld	0x500a, a
+                                    172 ;	main.c: 24: break;
+      00007F 20 25            [ 2]  173 	jra	00106$
+                                    174 ;	main.c: 25: case 'D':
+      000081                        175 00104$:
+                                    176 ;	main.c: 26: PD_DDR |= x;          // output
+      000081 C6 50 11         [ 1]  177 	ld	a, 0x5011
+      000084 1A 04            [ 1]  178 	or	a, (0x04, sp)
+      000086 C7 50 11         [ 1]  179 	ld	0x5011, a
+                                    180 ;	main.c: 27: PD_CR1 |= x;          // push-pull
+      000089 C6 50 12         [ 1]  181 	ld	a, 0x5012
+      00008C 1A 04            [ 1]  182 	or	a, (0x04, sp)
+      00008E C7 50 12         [ 1]  183 	ld	0x5012, a
+                                    184 ;	main.c: 28: PD_CR2 &= ~x;         // disable fast mode
+      000091 C6 50 13         [ 1]  185 	ld	a, 0x5013
+      000094 14 01            [ 1]  186 	and	a, (0x01, sp)
+      000096 C7 50 13         [ 1]  187 	ld	0x5013, a
+                                    188 ;	main.c: 29: PD_ODR ^= x;
+      000099 C6 50 0F         [ 1]  189 	ld	a, 0x500f
+      00009C 18 04            [ 1]  190 	xor	a, (0x04, sp)
+      00009E C7 50 0F         [ 1]  191 	ld	0x500f, a
+                                    192 ;	main.c: 30: break;
+      0000A1 20 03            [ 2]  193 	jra	00106$
+                                    194 ;	main.c: 31: default:
+      0000A3                        195 00105$:
+                                    196 ;	main.c: 32: return -1;
+      0000A3 A6 FF            [ 1]  197 	ld	a, #0xff
+                                    198 ;	main.c: 33: }
+                                    199 ;	main.c: 34: return 0;
+      0000A5 21                     200 	.byte 0x21
+      0000A6                        201 00106$:
+      0000A6 4F               [ 1]  202 	clr	a
+      0000A7                        203 00107$:
+                                    204 ;	main.c: 35: }
+      0000A7 5B 01            [ 2]  205 	addw	sp, #1
+      0000A9 85               [ 2]  206 	popw	x
+      0000AA 5B 01            [ 2]  207 	addw	sp, #1
+      0000AC FC               [ 2]  208 	jp	(x)
+                                    209 ;	main.c: 37: int8_t read_pin(char port, int x, char floating){ 
+                                    210 ;	-----------------------------------------
+                                    211 ;	 function read_pin
+                                    212 ;	-----------------------------------------
+      0000AD                        213 _read_pin:
+      0000AD 52 09            [ 2]  214 	sub	sp, #9
+      0000AF 1F 08            [ 2]  215 	ldw	(0x08, sp), x
+                                    216 ;	main.c: 39: switch(port){
+      0000B1 A1 41            [ 1]  217 	cp	a, #0x41
+      0000B3 26 07            [ 1]  218 	jrne	00182$
+      0000B5 88               [ 1]  219 	push	a
+      0000B6 A6 01            [ 1]  220 	ld	a, #0x01
+      0000B8 6B 02            [ 1]  221 	ld	(0x02, sp), a
+      0000BA 84               [ 1]  222 	pop	a
+      0000BB C5                     223 	.byte 0xc5
+      0000BC                        224 00182$:
+      0000BC 0F 01            [ 1]  225 	clr	(0x01, sp)
+      0000BE                        226 00183$:
+      0000BE A1 42            [ 1]  227 	cp	a, #0x42
+      0000C0 26 07            [ 1]  228 	jrne	00185$
+      0000C2 88               [ 1]  229 	push	a
+      0000C3 A6 01            [ 1]  230 	ld	a, #0x01
+      0000C5 6B 03            [ 1]  231 	ld	(0x03, sp), a
+      0000C7 84               [ 1]  232 	pop	a
+      0000C8 C5                     233 	.byte 0xc5
+      0000C9                        234 00185$:
+      0000C9 0F 02            [ 1]  235 	clr	(0x02, sp)
+      0000CB                        236 00186$:
+      0000CB A1 43            [ 1]  237 	cp	a, #0x43
+      0000CD 26 07            [ 1]  238 	jrne	00188$
+      0000CF 88               [ 1]  239 	push	a
+      0000D0 A6 01            [ 1]  240 	ld	a, #0x01
+      0000D2 6B 04            [ 1]  241 	ld	(0x04, sp), a
+      0000D4 84               [ 1]  242 	pop	a
+      0000D5 C5                     243 	.byte 0xc5
+      0000D6                        244 00188$:
+      0000D6 0F 03            [ 1]  245 	clr	(0x03, sp)
+      0000D8                        246 00189$:
+      0000D8 A0 44            [ 1]  247 	sub	a, #0x44
+      0000DA 26 04            [ 1]  248 	jrne	00191$
+      0000DC 4C               [ 1]  249 	inc	a
+      0000DD 6B 04            [ 1]  250 	ld	(0x04, sp), a
+      0000DF C5                     251 	.byte 0xc5
+      0000E0                        252 00191$:
+      0000E0 0F 04            [ 1]  253 	clr	(0x04, sp)
+      0000E2                        254 00192$:
+                                    255 ;	main.c: 41: PA_DDR &= ~x;          // Input 
+      0000E2 7B 09            [ 1]  256 	ld	a, (0x09, sp)
+      0000E4 6B 05            [ 1]  257 	ld	(0x05, sp), a
+      0000E6 43               [ 1]  258 	cpl	a
+      0000E7 6B 06            [ 1]  259 	ld	(0x06, sp), a
+                                    260 ;	main.c: 38: if(floating){
+      0000E9 0D 0C            [ 1]  261 	tnz	(0x0c, sp)
+      0000EB 26 03            [ 1]  262 	jrne	00193$
+      0000ED CCr01rB4         [ 2]  263 	jp	00114$
+      0000F0                        264 00193$:
+                                    265 ;	main.c: 39: switch(port){
+      0000F0 0D 01            [ 1]  266 	tnz	(0x01, sp)
+      0000F2 26 12            [ 1]  267 	jrne	00101$
+      0000F4 0D 02            [ 1]  268 	tnz	(0x02, sp)
+      0000F6 26 45            [ 1]  269 	jrne	00102$
+      0000F8 0D 03            [ 1]  270 	tnz	(0x03, sp)
+      0000FA 26 69            [ 1]  271 	jrne	00103$
+      0000FC 0D 04            [ 1]  272 	tnz	(0x04, sp)
+      0000FE 27 03            [ 1]  273 	jreq	00197$
+      000100 CCr01r8D         [ 2]  274 	jp	00104$
+      000103                        275 00197$:
+      000103 CCr01rAF         [ 2]  276 	jp	00105$
+                                    277 ;	main.c: 40: case 'A':
+      000106                        278 00101$:
+                                    279 ;	main.c: 41: PA_DDR &= ~x;          // Input 
+      000106 C6 50 02         [ 1]  280 	ld	a, 0x5002
+      000109 6B 07            [ 1]  281 	ld	(0x07, sp), a
+      00010B 14 06            [ 1]  282 	and	a, (0x06, sp)
+      00010D 6B 07            [ 1]  283 	ld	(0x07, sp), a
+      00010F AE 50 02         [ 2]  284 	ldw	x, #0x5002
+      000112 7B 07            [ 1]  285 	ld	a, (0x07, sp)
+      000114 F7               [ 1]  286 	ld	(x), a
+                                    287 ;	main.c: 42: PA_CR1 &= ~x;          // Pull-up 
+      000115 C6 50 03         [ 1]  288 	ld	a, 0x5003
+      000118 6B 07            [ 1]  289 	ld	(0x07, sp), a
+      00011A 14 06            [ 1]  290 	and	a, (0x06, sp)
+      00011C 6B 07            [ 1]  291 	ld	(0x07, sp), a
+      00011E AE 50 03         [ 2]  292 	ldw	x, #0x5003
+      000121 7B 07            [ 1]  293 	ld	a, (0x07, sp)
+      000123 F7               [ 1]  294 	ld	(x), a
+                                    295 ;	main.c: 43: PA_CR2 &= ~x;         // No interupt 
+      000124 C6 50 04         [ 1]  296 	ld	a, 0x5004
+      000127 6B 07            [ 1]  297 	ld	(0x07, sp), a
+      000129 14 06            [ 1]  298 	and	a, (0x06, sp)
+      00012B 6B 07            [ 1]  299 	ld	(0x07, sp), a
+      00012D AE 50 04         [ 2]  300 	ldw	x, #0x5004
+      000130 7B 07            [ 1]  301 	ld	a, (0x07, sp)
+      000132 F7               [ 1]  302 	ld	(x), a
+                                    303 ;	main.c: 44: return (PA_IDR & x); 
+      000133 C6 50 01         [ 1]  304 	ld	a, 0x5001
+      000136 6B 07            [ 1]  305 	ld	(0x07, sp), a
+      000138 14 05            [ 1]  306 	and	a, (0x05, sp)
+      00013A CCr02r47         [ 2]  307 	jp	00116$
+                                    308 ;	main.c: 45: case 'B':
+      00013D                        309 00102$:
+                                    310 ;	main.c: 46: PB_DDR &= ~x;          // Input 
+      00013D C6 50 07         [ 1]  311 	ld	a, 0x5007
+      000140 6B 07            [ 1]  312 	ld	(0x07, sp), a
+      000142 14 06            [ 1]  313 	and	a, (0x06, sp)
+      000144 C7 50 07         [ 1]  314 	ld	0x5007, a
+                                    315 ;	main.c: 47: PB_CR1 &= ~x;          // Pull-up 
+      000147 C6 50 08         [ 1]  316 	ld	a, 0x5008
+      00014A 6B 07            [ 1]  317 	ld	(0x07, sp), a
+      00014C 14 06            [ 1]  318 	and	a, (0x06, sp)
+      00014E C7 50 08         [ 1]  319 	ld	0x5008, a
+                                    320 ;	main.c: 48: PB_CR2 &= ~x;         // No interupt 
+      000151 C6 50 09         [ 1]  321 	ld	a, 0x5009
+      000154 6B 07            [ 1]  322 	ld	(0x07, sp), a
+      000156 14 06            [ 1]  323 	and	a, (0x06, sp)
+      000158 C7 50 09         [ 1]  324 	ld	0x5009, a
+                                    325 ;	main.c: 49: return (PB_IDR & x); 
+      00015B C6 50 06         [ 1]  326 	ld	a, 0x5006
+      00015E 6B 07            [ 1]  327 	ld	(0x07, sp), a
+      000160 14 05            [ 1]  328 	and	a, (0x05, sp)
+      000162 CCr02r47         [ 2]  329 	jp	00116$
+                                    330 ;	main.c: 50: case 'C':
+      000165                        331 00103$:
+                                    332 ;	main.c: 51: PC_DDR &= ~x;          // Input 
+      000165 C6 50 0C         [ 1]  333 	ld	a, 0x500c
+      000168 6B 07            [ 1]  334 	ld	(0x07, sp), a
+      00016A 14 06            [ 1]  335 	and	a, (0x06, sp)
+      00016C C7 50 0C         [ 1]  336 	ld	0x500c, a
+                                    337 ;	main.c: 52: PC_CR1 &= ~x;          // Pull-up 
+      00016F C6 50 0D         [ 1]  338 	ld	a, 0x500d
+      000172 6B 07            [ 1]  339 	ld	(0x07, sp), a
+      000174 14 06            [ 1]  340 	and	a, (0x06, sp)
+      000176 C7 50 0D         [ 1]  341 	ld	0x500d, a
+                                    342 ;	main.c: 53: PC_CR2 &= ~x;         // No interupt 
+      000179 C6 50 0E         [ 1]  343 	ld	a, 0x500e
+      00017C 6B 07            [ 1]  344 	ld	(0x07, sp), a
+      00017E 14 06            [ 1]  345 	and	a, (0x06, sp)
+      000180 C7 50 0E         [ 1]  346 	ld	0x500e, a
+                                    347 ;	main.c: 54: return (PC_IDR & x); 
+      000183 C6 50 0B         [ 1]  348 	ld	a, 0x500b
+      000186 6B 07            [ 1]  349 	ld	(0x07, sp), a
+      000188 14 05            [ 1]  350 	and	a, (0x05, sp)
+      00018A CCr02r47         [ 2]  351 	jp	00116$
+                                    352 ;	main.c: 56: case 'D':
+      00018D                        353 00104$:
+                                    354 ;	main.c: 57: PD_DDR &= ~x;          // Input 
+      00018D C6 50 11         [ 1]  355 	ld	a, 0x5011
+      000190 14 06            [ 1]  356 	and	a, (0x06, sp)
+      000192 C7 50 11         [ 1]  357 	ld	0x5011, a
+                                    358 ;	main.c: 58: PD_CR1 &= ~x;          // Pull-up 
+      000195 C6 50 12         [ 1]  359 	ld	a, 0x5012
+      000198 14 06            [ 1]  360 	and	a, (0x06, sp)
+      00019A C7 50 12         [ 1]  361 	ld	0x5012, a
+                                    362 ;	main.c: 59: PD_CR2 &= ~x;         // No interupt 
+      00019D C6 50 13         [ 1]  363 	ld	a, 0x5013
+      0001A0 14 06            [ 1]  364 	and	a, (0x06, sp)
+      0001A2 C7 50 13         [ 1]  365 	ld	0x5013, a
+                                    366 ;	main.c: 60: return (PD_IDR & x); 
+      0001A5 C6 50 10         [ 1]  367 	ld	a, 0x5010
+      0001A8 6B 07            [ 1]  368 	ld	(0x07, sp), a
+      0001AA 14 05            [ 1]  369 	and	a, (0x05, sp)
+      0001AC CCr02r47         [ 2]  370 	jp	00116$
+                                    371 ;	main.c: 62: default:
+      0001AF                        372 00105$:
+                                    373 ;	main.c: 63: return -1;
+      0001AF A6 FF            [ 1]  374 	ld	a, #0xff
+      0001B1 CCr02r47         [ 2]  375 	jp	00116$
+                                    376 ;	main.c: 64: }
+      0001B4                        377 00114$:
+                                    378 ;	main.c: 69: PA_CR1 |= x;          // Pull-up 
+      0001B4 7B 09            [ 1]  379 	ld	a, (0x09, sp)
+      0001B6 6B 07            [ 1]  380 	ld	(0x07, sp), a
+                                    381 ;	main.c: 66: switch(port){
+      0001B8 0D 01            [ 1]  382 	tnz	(0x01, sp)
+      0001BA 26 0E            [ 1]  383 	jrne	00107$
+      0001BC 0D 02            [ 1]  384 	tnz	(0x02, sp)
+      0001BE 26 29            [ 1]  385 	jrne	00108$
+      0001C0 0D 03            [ 1]  386 	tnz	(0x03, sp)
+      0001C2 26 44            [ 1]  387 	jrne	00109$
+      0001C4 0D 04            [ 1]  388 	tnz	(0x04, sp)
+      0001C6 26 5F            [ 1]  389 	jrne	00110$
+      0001C8 20 7B            [ 2]  390 	jra	00111$
+                                    391 ;	main.c: 67: case 'A':
+      0001CA                        392 00107$:
+                                    393 ;	main.c: 68: PA_DDR &= ~x;          // Input 
+      0001CA C6 50 02         [ 1]  394 	ld	a, 0x5002
+      0001CD 14 06            [ 1]  395 	and	a, (0x06, sp)
+      0001CF C7 50 02         [ 1]  396 	ld	0x5002, a
+                                    397 ;	main.c: 69: PA_CR1 |= x;          // Pull-up 
+      0001D2 C6 50 03         [ 1]  398 	ld	a, 0x5003
+      0001D5 1A 07            [ 1]  399 	or	a, (0x07, sp)
+      0001D7 C7 50 03         [ 1]  400 	ld	0x5003, a
+                                    401 ;	main.c: 70: PA_CR2 &= ~x;         // No interupt 
+      0001DA C6 50 04         [ 1]  402 	ld	a, 0x5004
+      0001DD 14 06            [ 1]  403 	and	a, (0x06, sp)
+      0001DF C7 50 04         [ 1]  404 	ld	0x5004, a
+                                    405 ;	main.c: 71: return (PA_IDR & x); 
+      0001E2 C6 50 01         [ 1]  406 	ld	a, 0x5001
+      0001E5 14 05            [ 1]  407 	and	a, (0x05, sp)
+      0001E7 20 5E            [ 2]  408 	jra	00116$
+                                    409 ;	main.c: 72: case 'B':
+      0001E9                        410 00108$:
+                                    411 ;	main.c: 73: PB_DDR &= ~x;          // Input 
+      0001E9 C6 50 07         [ 1]  412 	ld	a, 0x5007
+      0001EC 14 06            [ 1]  413 	and	a, (0x06, sp)
+      0001EE C7 50 07         [ 1]  414 	ld	0x5007, a
+                                    415 ;	main.c: 74: PB_CR1 |= x;          // Pull-up 
+      0001F1 C6 50 08         [ 1]  416 	ld	a, 0x5008
+      0001F4 1A 07            [ 1]  417 	or	a, (0x07, sp)
+      0001F6 C7 50 08         [ 1]  418 	ld	0x5008, a
+                                    419 ;	main.c: 75: PB_CR2 &= ~x;         // No interupt 
+      0001F9 C6 50 09         [ 1]  420 	ld	a, 0x5009
+      0001FC 14 06            [ 1]  421 	and	a, (0x06, sp)
+      0001FE C7 50 09         [ 1]  422 	ld	0x5009, a
+                                    423 ;	main.c: 76: return (PB_IDR & x); 
+      000201 C6 50 06         [ 1]  424 	ld	a, 0x5006
+      000204 14 05            [ 1]  425 	and	a, (0x05, sp)
+      000206 20 3F            [ 2]  426 	jra	00116$
+                                    427 ;	main.c: 77: case 'C':
+      000208                        428 00109$:
+                                    429 ;	main.c: 78: PC_DDR &= ~x;          // Input 
+      000208 C6 50 0C         [ 1]  430 	ld	a, 0x500c
+      00020B 14 06            [ 1]  431 	and	a, (0x06, sp)
+      00020D C7 50 0C         [ 1]  432 	ld	0x500c, a
+                                    433 ;	main.c: 79: PC_CR1 |= x;          // Pull-up 
+      000210 C6 50 0D         [ 1]  434 	ld	a, 0x500d
+      000213 1A 07            [ 1]  435 	or	a, (0x07, sp)
+      000215 C7 50 0D         [ 1]  436 	ld	0x500d, a
+                                    437 ;	main.c: 80: PC_CR2 &= ~x;         // No interupt 
+      000218 C6 50 0E         [ 1]  438 	ld	a, 0x500e
+      00021B 14 06            [ 1]  439 	and	a, (0x06, sp)
+      00021D C7 50 0E         [ 1]  440 	ld	0x500e, a
+                                    441 ;	main.c: 81: return (PC_IDR & x); 
+      000220 C6 50 0B         [ 1]  442 	ld	a, 0x500b
+      000223 14 05            [ 1]  443 	and	a, (0x05, sp)
+      000225 20 20            [ 2]  444 	jra	00116$
+                                    445 ;	main.c: 83: case 'D':
+      000227                        446 00110$:
+                                    447 ;	main.c: 84: PD_DDR &= ~x;          // Input 
+      000227 C6 50 11         [ 1]  448 	ld	a, 0x5011
+      00022A 14 06            [ 1]  449 	and	a, (0x06, sp)
+      00022C C7 50 11         [ 1]  450 	ld	0x5011, a
+                                    451 ;	main.c: 85: PD_CR1 |= x;          // Pull-up 
+      00022F C6 50 12         [ 1]  452 	ld	a, 0x5012
+      000232 1A 07            [ 1]  453 	or	a, (0x07, sp)
+      000234 C7 50 12         [ 1]  454 	ld	0x5012, a
+                                    455 ;	main.c: 86: PD_CR2 &= ~x;         // No interupt 
+      000237 C6 50 13         [ 1]  456 	ld	a, 0x5013
+      00023A 14 06            [ 1]  457 	and	a, (0x06, sp)
+      00023C C7 50 13         [ 1]  458 	ld	0x5013, a
+                                    459 ;	main.c: 87: return (PD_IDR & x); 
+      00023F C6 50 10         [ 1]  460 	ld	a, 0x5010
+      000242 14 05            [ 1]  461 	and	a, (0x05, sp)
+                                    462 ;	main.c: 89: default:
+                                    463 ;	main.c: 90: return -1;
+                                    464 ;	main.c: 95: return -1;
+      000244 C5                     465 	.byte 0xc5
+      000245                        466 00111$:
+      000245 A6 FF            [ 1]  467 	ld	a, #0xff
+      000247                        468 00116$:
+                                    469 ;	main.c: 96: }
+      000247 5B 09            [ 2]  470 	addw	sp, #9
+      000249 85               [ 2]  471 	popw	x
+      00024A 5B 01            [ 2]  472 	addw	sp, #1
+      00024C FC               [ 2]  473 	jp	(x)
+                                    474 ;	main.c: 99: uint8_t get_timing(void){
+                                    475 ;	-----------------------------------------
+                                    476 ;	 function get_timing
+                                    477 ;	-----------------------------------------
+      00024D                        478 _get_timing:
+      00024D 52 02            [ 2]  479 	sub	sp, #2
+                                    480 ;	main.c: 101: uint8_t timing = 0;
+      00024F 0F 01            [ 1]  481 	clr	(0x01, sp)
+                                    482 ;	main.c: 102: for(int i=3; i<7; i++){
+      000251 A6 03            [ 1]  483 	ld	a, #0x03
+      000253 6B 02            [ 1]  484 	ld	(0x02, sp), a
+      000255                        485 00110$:
+      000255 7B 02            [ 1]  486 	ld	a, (0x02, sp)
+      000257 A1 07            [ 1]  487 	cp	a, #0x07
+      000259 24 44            [ 1]  488 	jrnc	00108$
+                                    489 ;	main.c: 104: input = read_pin('C', (1 << i), 0); // Check if pin is pulled low
+      00025B 5F               [ 1]  490 	clrw	x
+      00025C 5C               [ 1]  491 	incw	x
+      00025D 7B 02            [ 1]  492 	ld	a, (0x02, sp)
+      00025F                        493 00143$:
+      00025F 58               [ 2]  494 	sllw	x
+      000260 4A               [ 1]  495 	dec	a
+      000261 26 FC            [ 1]  496 	jrne	00143$
+      000263 4B 00            [ 1]  497 	push	#0x00
+      000265 A6 43            [ 1]  498 	ld	a, #0x43
+      000267 CDr00rAD         [ 4]  499 	call	_read_pin
+      00026A 97               [ 1]  500 	ld	xl, a
+      00026B 49               [ 1]  501 	rlc	a
+      00026C 4F               [ 1]  502 	clr	a
+      00026D A2 00            [ 1]  503 	sbc	a, #0x00
+      00026F 95               [ 1]  504 	ld	xh, a
+                                    505 ;	main.c: 105: if(input < 0){ // Error checking ):
+      000270 5D               [ 2]  506 	tnzw	x
+      000271 2A 0F            [ 1]  507 	jrpl	00105$
+                                    508 ;	main.c: 106: while(1){
+      000273                        509 00102$:
+                                    510 ;	main.c: 107: tog_pin('B', (1 << 5));
+      000273 4B 20            [ 1]  511 	push	#0x20
+      000275 A6 42            [ 1]  512 	ld	a, #0x42
+      000277 CDr00r00         [ 4]  513 	call	_tog_pin
+                                    514 ;	main.c: 108: delay_ms(1000);
+      00027A AE 03 E8         [ 2]  515 	ldw	x, #0x03e8
+      00027D CDr00r00         [ 4]  516 	call	_delay_ms
+      000280 20 F1            [ 2]  517 	jra	00102$
+      000282                        518 00105$:
+                                    519 ;	main.c: 111: if(input == 0){ // If pulled low
+      000282 5D               [ 2]  520 	tnzw	x
+      000283 26 16            [ 1]  521 	jrne	00111$
+                                    522 ;	main.c: 112: timing |= (1 << (i-3)); // Set bit on nibble
+      000285 7B 02            [ 1]  523 	ld	a, (0x02, sp)
+      000287 A0 03            [ 1]  524 	sub	a, #0x03
+      000289 97               [ 1]  525 	ld	xl, a
+      00028A A6 01            [ 1]  526 	ld	a, #0x01
+      00028C 88               [ 1]  527 	push	a
+      00028D 9F               [ 1]  528 	ld	a, xl
+      00028E 4D               [ 1]  529 	tnz	a
+      00028F 27 05            [ 1]  530 	jreq	00148$
+      000291                        531 00147$:
+      000291 08 01            [ 1]  532 	sll	(1, sp)
+      000293 4A               [ 1]  533 	dec	a
+      000294 26 FB            [ 1]  534 	jrne	00147$
+      000296                        535 00148$:
+      000296 84               [ 1]  536 	pop	a
+      000297 1A 01            [ 1]  537 	or	a, (0x01, sp)
+      000299 6B 01            [ 1]  538 	ld	(0x01, sp), a
+      00029B                        539 00111$:
+                                    540 ;	main.c: 102: for(int i=3; i<7; i++){
+      00029B 0C 02            [ 1]  541 	inc	(0x02, sp)
+      00029D 20 B6            [ 2]  542 	jra	00110$
+      00029F                        543 00108$:
+                                    544 ;	main.c: 115: return timing;
+      00029F 7B 01            [ 1]  545 	ld	a, (0x01, sp)
+                                    546 ;	main.c: 116: }
+      0002A1 5B 02            [ 2]  547 	addw	sp, #2
+      0002A3 81               [ 4]  548 	ret
+                                    549 ;	main.c: 119: int main() {
+                                    550 ;	-----------------------------------------
+                                    551 ;	 function main
+                                    552 ;	-----------------------------------------
+      0002A4                        553 _main:
+      0002A4 52 04            [ 2]  554 	sub	sp, #4
+                                    555 ;	main.c: 123: CLK_CKDIVR = 0x00; // Dont divide clock timing
+      0002A6 35 00 50 C6      [ 1]  556 	mov	0x50c6+0, #0x00
+                                    557 ;	main.c: 124: uint8_t timing = get_timing(); // Get dip switch settings
+      0002AA CDr02r4D         [ 4]  558 	call	_get_timing
+      0002AD 6B 01            [ 1]  559 	ld	(0x01, sp), a
+                                    560 ;	main.c: 126: while(read_pin('C', (1<<7), 1)); // Hold countdown until launch event detected (pin c7 DCed during launch)
+      0002AF                        561 00101$:
+      0002AF 4B 01            [ 1]  562 	push	#0x01
+      0002B1 AE 00 80         [ 2]  563 	ldw	x, #0x0080
+      0002B4 A6 43            [ 1]  564 	ld	a, #0x43
+      0002B6 CDr00rAD         [ 4]  565 	call	_read_pin
+      0002B9 4D               [ 1]  566 	tnz	a
+      0002BA 26 F3            [ 1]  567 	jrne	00101$
+                                    568 ;	main.c: 129: while(1){
+      0002BC 0F 04            [ 1]  569 	clr	(0x04, sp)
+      0002BE                        570 00110$:
+                                    571 ;	main.c: 130: if(elapsed >= (timing*10)){ // Check if timer has gone off
+      0002BE 7B 01            [ 1]  572 	ld	a, (0x01, sp)
+      0002C0 5F               [ 1]  573 	clrw	x
+      0002C1 97               [ 1]  574 	ld	xl, a
+      0002C2 89               [ 2]  575 	pushw	x
+      0002C3 58               [ 2]  576 	sllw	x
+      0002C4 58               [ 2]  577 	sllw	x
+      0002C5 72 FB 01         [ 2]  578 	addw	x, (1, sp)
+      0002C8 58               [ 2]  579 	sllw	x
+      0002C9 5B 02            [ 2]  580 	addw	sp, #2
+      0002CB 1F 02            [ 2]  581 	ldw	(0x02, sp), x
+      0002CD 7B 04            [ 1]  582 	ld	a, (0x04, sp)
+      0002CF 5F               [ 1]  583 	clrw	x
+      0002D0 97               [ 1]  584 	ld	xl, a
+      0002D1 13 02            [ 2]  585 	cpw	x, (0x02, sp)
+      0002D3 2F 16            [ 1]  586 	jrslt	00108$
+                                    587 ;	main.c: 131: tog_pin('D', (1<<4)); // Activate ignitor
+      0002D5 4B 10            [ 1]  588 	push	#0x10
+      0002D7 A6 44            [ 1]  589 	ld	a, #0x44
+      0002D9 CDr00r00         [ 4]  590 	call	_tog_pin
+                                    591 ;	main.c: 132: delay_ms(5000);  // Wait 5 seconds
+      0002DC AE 13 88         [ 2]  592 	ldw	x, #0x1388
+      0002DF CDr00r00         [ 4]  593 	call	_delay_ms
+                                    594 ;	main.c: 133: tog_pin('D', (1<<4)); // Deactivate to avoid damage to lipos
+      0002E2 4B 10            [ 1]  595 	push	#0x10
+      0002E4 A6 44            [ 1]  596 	ld	a, #0x44
+      0002E6 CDr00r00         [ 4]  597 	call	_tog_pin
+                                    598 ;	main.c: 134: while(1); // Program finished, 
+      0002E9                        599 00105$:
+      0002E9 20 FE            [ 2]  600 	jra	00105$
+      0002EB                        601 00108$:
+                                    602 ;	main.c: 136: delay_ms(100); // If timer still going wait the 100 mills
+      0002EB AE 00 64         [ 2]  603 	ldw	x, #0x0064
+      0002EE CDr00r00         [ 4]  604 	call	_delay_ms
+                                    605 ;	main.c: 137: elapsed++; // Another 100 mills has elapsed
+      0002F1 0C 04            [ 1]  606 	inc	(0x04, sp)
+                                    607 ;	main.c: 138: tog_pin('B', (1 << 5)); // Blink light for ease of use
+      0002F3 4B 20            [ 1]  608 	push	#0x20
+      0002F5 A6 42            [ 1]  609 	ld	a, #0x42
+      0002F7 CDr00r00         [ 4]  610 	call	_tog_pin
+      0002FA 20 C2            [ 2]  611 	jra	00110$
+                                    612 ;	main.c: 141: }
+      0002FC 5B 04            [ 2]  613 	addw	sp, #4
+      0002FE 81               [ 4]  614 	ret
+                                    615 	.area CODE
+                                    616 	.area CONST
+                                    617 	.area INITIALIZER
+                                    618 	.area CABS (ABS)

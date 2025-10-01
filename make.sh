@@ -1,10 +1,6 @@
-# Step 1: Compile each C file to .rel object files
-sdcc -mstm8 -c main.c
-sdcc -mstm8 -c tim.c
+sdcc -mstm8 -c main.c -o tmp/main.rel
+sdcc -mstm8 -c tim.c  -o tmp/tim.rel
 
-# Step 2: Link into one firmware .ihx
-sdcc -mstm8 main.rel tim.rel -o firmware.ihx
+sdcc -mstm8 tmp/main.rel tmp/tim.rel -o tmp/firmware.ihx
 
-# Step 3: Convert .ihx to .hex
-packihx firmware.ihx > firmware.hex
-
+packihx tmp/firmware.ihx 
